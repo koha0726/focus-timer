@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const DEFAULT_TIME = 25; //25分(秒単位)
 
@@ -7,7 +7,10 @@ const DEFAULT_TIME = 25; //25分(秒単位)
 export default function FocusTimer() {
   const [time, setTime] = useState<number>(DEFAULT_TIME);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [history, setHistory] = useState<string[]>([]);
+  const [startTime, setStartTime] = useState<string | null>(null);
+  const [history, setHistory] = useState<{start: string; end: string}[]>([]);
+
+  const hasRecorded = useRef(false); // 二重記録防止
 
   // 残り時間を分:秒の形式に変換
   const formatTime = (seconds: number): string => {
@@ -29,6 +32,9 @@ useEffect(() => {
   useEffect(() => {
     if (!isRunning) return;
 
+    // 一旦リセット
+    hasRecorded.current = false;
+
     const timer = setInterval(() => {
       setTime((prev) => {
         if (prev <= 1) {
@@ -36,15 +42,29 @@ useEffect(() => {
           setIsRunning(false);
           setTime(0);
 
+          // 二重記録防止
+          if (hasRecorded.current) {
+            return 0;
+          }
+          hasRecorded.current = true;
+
+
+
 
           // 履歴
           
-         setHistory((prevHistory) => {
-            const newRecord = new Date().toLocaleString(); // 時刻付きに変更
-            const updated = [newRecord, ...prevHistory];
-            localStorage.setItem("focusHistory", JSON.stringify(updated));
-            return updated;
-          });
+          // 終了時間の記録
+          const endTime = new Date().toLocaleString();
+
+          if (startTime) {
+            const newRecord = {start: startTime, end: endTime};
+            setHistory((prevHistory) => {
+              const updated = [newRecord, ...prevHistory];
+              localStorage.setItem("focusHistory", JSON.stringify(updated));
+              return updated;
+            });
+            setStartTime(null); // リセット
+          }
           return 0;
 
         }
@@ -53,19 +73,36 @@ useEffect(() => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isRunning]);
+  }, [isRunning, startTime]);
+
+
+// スタートボタン
+const handleStart = () => {
+  if (!isRunning) {
+    setStartTime(new Date().toLocaleString());
+    setIsRunning(true);
+  }
+};
+
+
+// リセットボタン
+const handleReset = () => {
+  setIsRunning(false);
+  setTime(DEFAULT_TIME);
+  setStartTime(null);
+};
+
+
+
 
   return (
     <div style={{ textAlign: "center", marginTop: "100px" }}>
       <h1>🎯 Focus Timer</h1>
       <h2>{formatTime(time)}</h2>
       <div style={{ marginTop: "20px" }}>
-        <button onClick={() => setIsRunning(true)}>Start</button>
+        <button onClick={handleStart}>Start</button>
         <button onClick={() => setIsRunning(false)}>Pause</button>
-        <button onClick={() => {
-          setIsRunning(false);
-          setTime(DEFAULT_TIME);
-          }}>Reset</button>
+        <button onClick={handleReset}>Reset</button>
       </div>
 
           {/* 履歴表示 */}
@@ -76,7 +113,8 @@ useEffect(() => {
             ) : (
               <ul style={{listStyle: "none", padding: 0}}>
                 {history.map((record, index) => (
-                  <li key={index}>{record}</li>
+                  <li key={index}>
+                    {record.start} → {record.end}</li>
                 ))}
               </ul>
             )}
