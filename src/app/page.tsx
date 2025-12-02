@@ -78,6 +78,11 @@ useEffect(() => {
 
 // スタートボタン
 const handleStart = () => {
+
+  if (time <= 0) {
+    return;
+  }
+
   if (!isRunning) {
     setStartTime(new Date().toLocaleString());
     setIsRunning(true);
