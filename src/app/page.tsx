@@ -92,6 +92,12 @@ const handleReset = () => {
   setStartTime(null);
 };
 
+// 履歴クリアボタン
+const handleHistoryClear = () => {
+  setHistory([]);
+  localStorage.removeItem("focusHistory");
+};
+
 
 
 
@@ -106,8 +112,11 @@ const handleReset = () => {
       </div>
 
           {/* 履歴表示 */}
-          <div style={{marginTop: "40pz"}}>
+          <div style={{marginTop: "40px"}}>
             <h3>🕒 履歴</h3>
+
+            <button onClick={handleHistoryClear} style={{marginBottom: "10px"}}>履歴クリア</button>
+
             {history.length === 0 ? (
               <p>まだ記録はありません。</p>
             ) : (
